@@ -118,3 +118,34 @@ Suggested probe mapping (for orchestrators like Kubernetes):
 - **livenessProbe** -> `/livez`
 - **readinessProbe** -> `/readyz`
 
+## Restore maintenance API hooks (switch ON/OFF)
+
+Restore mode can be toggled via API (admin-only), so scripts can switch traffic blocking on/off:
+
+- `POST /ops/restore/enable`
+- `POST /ops/restore/disable`
+- `GET /ops/restore/status`
+
+Typical restore flow:
+
+```bash
+# 1) login as admin and extract token
+TOKEN="$(curl -sS -X POST 'http://localhost:9000/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}' | jq -r '.accessToken')"
+
+# 2) switch restore mode ON
+curl -sS -X POST 'http://localhost:9000/ops/restore/enable' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"reason":"database restore"}'
+
+# ... run restore commands ...
+
+# 3) switch restore mode OFF
+curl -sS -X POST 'http://localhost:9000/ops/restore/disable' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"reason":"restore complete"}'
+```
+

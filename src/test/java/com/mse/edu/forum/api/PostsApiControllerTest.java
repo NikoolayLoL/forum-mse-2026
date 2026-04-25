@@ -4,10 +4,14 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.mse.edu.forum.maintenance.RestoreMaintenanceState;
 import com.mse.edu.forum.repo.PostRepository;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +25,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,8 +51,12 @@ class PostsApiControllerTest {
 	@Autowired
 	private PostRepository postRepository;
 
+	@Autowired
+	private RestoreMaintenanceState restoreMaintenanceState;
+
 	@BeforeEach
 	void setUp() {
+		restoreMaintenanceState.finishRestore();
 		postRepository.deleteAll();
 	}
 
@@ -173,6 +179,41 @@ class PostsApiControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].title").value("Post A"))
 				.andExpect(jsonPath("$[1].title").value("Post B"));
+	}
+
+	@Test
+	void restoreInProgress_blocksReadWith503AndRetryAfter() throws Exception {
+		restoreMaintenanceState.startRestore();
+
+		mockMvc.perform(get("/posts"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(header().string("Retry-After", "120"))
+				.andExpect(jsonPath("$.error").value("RESTORE_IN_PROGRESS"));
+	}
+
+	@Test
+	void restoreInProgress_blocksWriteWith503AndRetryAfter() throws Exception {
+		restoreMaintenanceState.startRestore();
+
+		mockMvc.perform(post("/posts")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "title": "Blocked during restore",
+								  "content": "Should return 503"
+								}
+								"""))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(header().string("Retry-After", "120"))
+				.andExpect(jsonPath("$.error").value("RESTORE_IN_PROGRESS"));
+	}
+
+	@Test
+	void restoreInProgress_allowsReadinessEndpoint() throws Exception {
+		restoreMaintenanceState.startRestore();
+
+		mockMvc.perform(get("/readyz"))
+				.andExpect(status().isOk());
 	}
 
 	private String loginAndGetToken(String username, String password) throws Exception {
