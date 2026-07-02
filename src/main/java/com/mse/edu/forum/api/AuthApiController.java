@@ -3,6 +3,7 @@ package com.mse.edu.forum.api;
 import com.mse.edu.forum.api.generated.AuthApi;
 import com.mse.edu.forum.api.generated.model.LoginRequest;
 import com.mse.edu.forum.api.generated.model.LoginResponse;
+import com.mse.edu.forum.api.generated.model.RegisterRequest;
 import com.mse.edu.forum.service.AuthService;
 import jakarta.validation.Valid;
 import org.apache.logging.log4j.LogManager;
@@ -32,5 +33,11 @@ public class AuthApiController implements AuthApi {
 			log.debug("login failed: {}", e.getMessage());
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		}
+	}
+
+	@Override
+	public ResponseEntity<LoginResponse> register(@Valid RegisterRequest registerRequest) {
+		log.debug("register invoked username={}", registerRequest.getUsername());
+		return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(registerRequest));
 	}
 }

@@ -81,8 +81,8 @@ class PostsApiControllerTest {
 
 		mockMvc.perform(get("/posts"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[*].title", hasItem("My first post")))
-				.andExpect(jsonPath("$[*].content", hasItem("Hello from MockMvc + Testcontainers")));
+				.andExpect(jsonPath("$.content[*].title", hasItem("My first post")))
+				.andExpect(jsonPath("$.content[*].content", hasItem("Hello from MockMvc + Testcontainers")));
 	}
 
 	@Test
@@ -145,12 +145,12 @@ class PostsApiControllerTest {
 
 		mockMvc.perform(get("/posts"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[*].title", hasItem("Visible post")))
-				.andExpect(jsonPath("$[*].title", not(hasItem("No token"))));
+				.andExpect(jsonPath("$.content[*].title", hasItem("Visible post")))
+				.andExpect(jsonPath("$.content[*].title", not(hasItem("No token"))));
 	}
 
 	@Test
-	void listPosts_returnsInsertionOrder() throws Exception {
+	void listPosts_returnsNewestFirst() throws Exception {
 		String token = loginAndGetToken("admin", "admin");
 
 		mockMvc.perform(post("/posts")
@@ -177,8 +177,8 @@ class PostsApiControllerTest {
 
 		mockMvc.perform(get("/posts"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].title").value("Post A"))
-				.andExpect(jsonPath("$[1].title").value("Post B"));
+				.andExpect(jsonPath("$.content[0].title").value("Post B"))
+				.andExpect(jsonPath("$.content[1].title").value("Post A"));
 	}
 
 	@Test

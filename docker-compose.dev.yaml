@@ -1,0 +1,61 @@
+# Development stack with hot reload.
+#
+#   docker compose -f docker-compose.dev.yaml up
+#
+# - frontend: runs `next dev` (Fast Refresh). Edits under ./frontend reflect
+#   in the browser with NO rebuild.
+# - app: built normally. For fast Java iteration prefer running it on the host
+#   with `./mvnw spring-boot:run` (spring-boot-devtools auto-restarts on
+#   recompile) instead of rebuilding the image.
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      FORUM_CORS_ALLOWED_ORIGINS: http://localhost:3001,http://forum:3000
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    # The browser (on the host) reaches the API at localhost:9000.
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:9000
+      # Make Next's file watcher reliable across bind-mounts on all OSes.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    # Run Next on 3001 inside the container so its startup banner matches the
+    # published host port (the package.json "dev" script hardcodes -p 3000).
+    command: sh -c "npm install && npx next dev -p 3001"
+    volumes:
+      - ./frontend:/app
+      # Keep container-managed deps/build out of the bind-mount.
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3001"
+    depends_on:
+      - app

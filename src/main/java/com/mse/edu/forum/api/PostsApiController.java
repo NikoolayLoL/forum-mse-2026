@@ -2,10 +2,11 @@ package com.mse.edu.forum.api;
 
 import com.mse.edu.forum.api.generated.PostsApi;
 import com.mse.edu.forum.api.generated.model.CreatePostRequest;
+import com.mse.edu.forum.api.generated.model.PostPage;
 import com.mse.edu.forum.api.generated.model.PostResponse;
+import com.mse.edu.forum.api.generated.model.UpdatePostRequest;
 import com.mse.edu.forum.service.PostService;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -25,16 +26,16 @@ public class PostsApiController implements PostsApi {
 	}
 
 	@Override
-	public ResponseEntity<List<PostResponse>> listPosts() {
-		log.debug("listPosts invoked");
-		return ResponseEntity.ok(postService.findAll());
+	public ResponseEntity<PostPage> listPosts(Integer page, Integer size) {
+		log.debug("listPosts invoked page={} size={}", page, size);
+		return ResponseEntity.ok(postService.findAll(page, size));
 	}
 
 	@Override
 	public ResponseEntity<PostResponse> getPostById(Long id) {
 		log.debug("getPostById invoked id={}", id);
 		return postService
-				.findById(id)
+				.openTopic(id)
 				.map(ResponseEntity::ok)
 				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
@@ -45,5 +46,44 @@ public class PostsApiController implements PostsApi {
 		log.debug("createPost invoked title={}", createPostRequest.getTitle());
 		PostResponse created = postService.create(createPostRequest);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
+	}
+
+	@Override
+	@PreAuthorize("@contentSecurity.canModifyPost(#id)")
+	public ResponseEntity<PostResponse> updatePost(Long id, @Valid UpdatePostRequest updatePostRequest) {
+		log.debug("updatePost invoked id={}", id);
+		return postService
+				.update(id, updatePostRequest)
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
+	}
+
+	@Override
+	@PreAuthorize("@contentSecurity.canModifyPost(#id)")
+	public ResponseEntity<Void> deletePost(Long id) {
+		log.debug("deletePost invoked id={}", id);
+		return postService.delete(id)
+				? ResponseEntity.noContent().build()
+				: ResponseEntity.notFound().build();
+	}
+
+	@Override
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<PostResponse> likePost(Long id) {
+		log.debug("likePost invoked id={}", id);
+		return postService
+				.like(id)
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
+	}
+
+	@Override
+	@PreAuthorize("isAuthenticated()")
+	public ResponseEntity<PostResponse> unlikePost(Long id) {
+		log.debug("unlikePost invoked id={}", id);
+		return postService
+				.unlike(id)
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 }
