@@ -2,8 +2,7 @@
 
 A practical guide to setting up, running, and using the Forum project
 (Spring Boot API + Next.js frontend + Postgres, JWT auth, contract-first
-OpenAPI). See also [DEVELOPMENT.md](DEVELOPMENT.md),
-[REQUIREMENTS.md](REQUIREMENTS.md), and [.claude/CLAUDE.md](.claude/CLAUDE.md).
+OpenAPI). See also [DEVELOPMENT.md](DEVELOPMENT.md).
 
 > **Terminology:** the requirements say *"Topic"*; the code calls it a **Post**
 > (`/posts`, `PostEntity`). Topic = Post throughout.

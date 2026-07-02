@@ -36,3 +36,7 @@ build/
 
 ### Claude ###
 .claude/
+CLAUDE.md
+
+### Local-only project docs (kept on disk, not tracked) ###
+/REQUIREMENTS.md
