@@ -21,7 +21,7 @@ OpenAPI). See also [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ```bash
 # 1. Clone your copy of the repo
-https://github.com/NikoolayLoL/forum-mse-2026.git
+gh repo clone NikoolayLoL/forum-mse-2026
 cd forum-mse-2026
 
 # 2. Ensure a .env exists (the dev stack reads it for DB creds + secrets).
